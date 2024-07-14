@@ -123,11 +123,39 @@
                 const response = await fetch(`/get_volumes_info/${mac}`);
                 if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
                 const volumesData = await response.json();
-                row.cells[5].innerHTML = volumesData.volumes.join('<br>');
+                const volumesCell = row.cells[5];
+                volumesCell.innerHTML = volumesData.volumes.join('<br>');
+
+                // Check if volumes were found and add the "Generate Scripts" button
+                if (volumesData.volumes.length > 0 && volumesData.volumes[0] !== 'No volumes found') {
+                    const generateButton = document.createElement('button');
+                    generateButton.innerText = 'Generate Scripts';
+                    generateButton.className = 'actions';
+                    generateButton.addEventListener('click', () => generateScripts(mac, volumesData.volumes));
+                    row.cells[3].appendChild(generateButton);
+                }
             } catch (error) {
                 console.error('Error loading volumes info:', error);
                 row.cells[5].innerText = 'Error';
                 alert(`Error loading volumes info: ${error.message}`);
+            }
+        }
+
+        async function generateScripts(mac, volumes) {
+            try {
+                const response = await fetch('/generate_scripts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ mac: mac, volumes: volumes }),
+                });
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                const result = await response.json();
+                alert(result.message);
+            } catch (error) {
+                console.error('Error generating scripts:', error);
+                alert(`Error generating scripts: ${error.message}`);
             }
         }
     </script>
