@@ -1,9 +1,26 @@
-from flask import current_app as app, render_template
-from .fing_query_api import get_fing_devices
+from flask import current_app as app, render_template, request, jsonify
+import subprocess
 
 @app.route('/')
 def index():
-    devices = get_fing_devices()
-    up_devices = [d for d in devices if d.get('state') == 'UP']
-    down_devices = [d for d in devices if d.get('state') == 'DOWN']
-    return render_template('index.html', devices=devices, up_count=len(up_devices), down_count=len(down_devices))
+    return render_template('index.html')
+
+@app.route('/check_devices', methods=['POST'])
+def check_devices():
+    mac_addresses = request.json.get('mac_addresses', [])
+    results = []
+
+    for mac in mac_addresses:
+        result = check_device(mac)
+        results.append({'mac': mac, 'reachable': result})
+
+    return jsonify(results)
+
+def check_device(mac):
+    try:
+        # Replace 'arp-scan' with the appropriate command to check MAC address on your system
+        result = subprocess.run(['arp-scan', '-l'], capture_output=True, text=True)
+        return mac in result.stdout
+    except Exception as e:
+        print(f"Error checking device {mac}: {e}")
+        return False

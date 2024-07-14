@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Device Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Network Device Manager</h1>
+    <form id="mac-form">
+        <label for="mac_addresses">Enter MAC Addresses (comma separated):</label><br>
+        <input type="text" id="mac_addresses" name="mac_addresses" required><br><br>
+        <button type="submit">Check Devices</button>
+    </form>
+    <div id="results"></div>
+    <script>
+        document.getElementById('mac-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const macAddresses = document.getElementById('mac_addresses').value.split(',');
+            const response = await fetch('/check_devices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ mac_addresses: macAddresses }),
+            });
+            const results = await response.json();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h2>Results</h2>';
+            results.forEach(result => {
+                resultsDiv.innerHTML += `<p>MAC: ${result.mac} - Reachable: ${result.reachable}</p>`;
+            });
+        });
+    </script>
+</body>
+</html>
