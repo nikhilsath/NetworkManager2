@@ -12,6 +12,12 @@ def check_devices():
     devices = run_arp_scan(ip_range)  # Run the arp-scan command
     return jsonify(devices)  # Return the results as JSON
 
+@app.route('/ping_device', methods=['POST'])
+def ping_device():
+    ip = request.json.get('ip')
+    success = run_ping(ip)
+    return jsonify({'success': success})
+
 def run_arp_scan(ip_range):
     try:
         result = subprocess.run(['sudo', 'arp-scan', ip_range], capture_output=True, text=True)  # Run sudo arp-scan
@@ -33,3 +39,11 @@ def parse_arp_scan_output(output):
                     'vendor': ' '.join(parts[2:]) if len(parts) > 2 else 'Unknown'
                 })
     return devices
+
+def run_ping(ip):
+    try:
+        result = subprocess.run(['ping', '-c', '1', ip], capture_output=True, text=True)
+        return result.returncode == 0
+    except Exception as e:
+        print(f"Error pinging IP {ip}: {e}")
+        return False

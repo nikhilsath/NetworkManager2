@@ -20,6 +20,8 @@
                     <th>IP Address</th>
                     <th>MAC Address</th>
                     <th>Vendor</th>
+                    <th>Actions</th>
+                    <th>Ping Result</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,8 +47,26 @@
                 row.insertCell(0).innerText = device.ip;
                 row.insertCell(1).innerText = device.mac;
                 row.insertCell(2).innerText = device.vendor;
+                const actionCell = row.insertCell(3);
+                const pingButton = document.createElement('button');
+                pingButton.innerText = 'Ping';
+                pingButton.addEventListener('click', () => pingDevice(device.ip, row));
+                actionCell.appendChild(pingButton);
+                row.insertCell(4).innerText = '';  // Placeholder for ping result
             });
         });
+
+        async function pingDevice(ip, row) {
+            const response = await fetch('/ping_device', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ip: ip }),
+            });
+            const result = await response.json();
+            row.cells[4].innerText = result.success ? 'Reachable' : 'Unreachable';
+        }
     </script>
 </body>
 </html>
