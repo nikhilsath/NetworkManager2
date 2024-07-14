@@ -29,7 +29,7 @@
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '<h2>Results</h2>';
             results.forEach(result => {
-                resultsDiv.innerHTML += `<p>MAC: ${result.mac} - Reachable: ${result.reachable}</p>`;
+                resultsDiv.innerHTML += `<p>MAC: ${result.mac} - IP: ${result.ip || 'N/A'} - Reachable: ${result.reachable}</p>`;
             });
         });
     </script>

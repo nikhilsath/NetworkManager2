@@ -1,5 +1,6 @@
 from flask import current_app as app, render_template, request, jsonify
 import subprocess
+import re
 
 @app.route('/')
 def index():
@@ -11,16 +12,29 @@ def check_devices():
     results = []
 
     for mac in mac_addresses:
-        result = check_device(mac)
-        results.append({'mac': mac, 'reachable': result})
+        ip = find_ip_by_mac(mac)
+        reachable = check_device(ip) if ip else False
+        results.append({'mac': mac, 'ip': ip, 'reachable': reachable})
 
     return jsonify(results)
 
-def check_device(mac):
+def find_ip_by_mac(mac):
     try:
-        # Replace 'arp-scan' with the appropriate command to check MAC address on your system
         result = subprocess.run(['arp-scan', '-l'], capture_output=True, text=True)
-        return mac in result.stdout
+        pattern = re.compile(rf'(\d+\.\d+\.\d+\.\d+)\s+{mac}\s+')
+        match = pattern.search(result.stdout)
+        if match:
+            return match.group(1)
+        else:
+            return None
     except Exception as e:
-        print(f"Error checking device {mac}: {e}")
+        print(f"Error finding IP for MAC {mac}: {e}")
+        return None
+
+def check_device(ip):
+    try:
+        result = subprocess.run(['ping', '-c', '1', ip], capture_output=True, text=True)
+        return result.returncode == 0
+    except Exception as e:
+        print(f"Error checking device {ip}: {e}")
         return False
