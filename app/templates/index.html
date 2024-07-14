@@ -22,6 +22,7 @@
                     <th>Vendor</th>
                     <th>Actions</th>
                     <th>Ping Result</th>
+                    <th>Volumes/Drives</th>
                 </tr>
             </thead>
             <tbody>
@@ -32,40 +33,102 @@
         document.getElementById('scan-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             const ipRange = document.getElementById('ip_range').value;
-            const response = await fetch('/check_devices', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ ip_range: ipRange }),
-            });
-            const devices = await response.json();
-            const resultsTable = document.getElementById('results-table').getElementsByTagName('tbody')[0];
-            resultsTable.innerHTML = '';  // Clear previous results
-            devices.forEach(device => {
-                const row = resultsTable.insertRow();
-                row.insertCell(0).innerText = device.ip;
-                row.insertCell(1).innerText = device.mac;
-                row.insertCell(2).innerText = device.vendor;
-                const actionCell = row.insertCell(3);
-                const pingButton = document.createElement('button');
-                pingButton.innerText = 'Ping';
-                pingButton.addEventListener('click', () => pingDevice(device.ip, row));
-                actionCell.appendChild(pingButton);
-                row.insertCell(4).innerText = '';  // Placeholder for ping result
-            });
+            try {
+                const response = await fetch('/check_devices', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ip_range: ipRange }),
+                });
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                const devices = await response.json();
+                const resultsTable = document.getElementById('results-table').getElementsByTagName('tbody')[0];
+                resultsTable.innerHTML = '';  // Clear previous results
+                devices.forEach(device => {
+                    const row = resultsTable.insertRow();
+                    row.insertCell(0).innerText = device.ip;
+                    row.insertCell(1).innerText = device.mac;
+                    row.insertCell(2).innerText = device.vendor;
+                    const actionCell = row.insertCell(3);
+                    const pingButton = document.createElement('button');
+                    pingButton.innerText = 'Ping';
+                    pingButton.className = 'actions';
+                    pingButton.addEventListener('click', () => pingDevice(device.ip, row));
+                    actionCell.appendChild(pingButton);
+
+                    if (device.vendor.includes('Apple')) {
+                        const scanButton = document.createElement('button');
+                        scanButton.innerText = 'Scan Volumes';
+                        scanButton.className = 'actions';
+                        scanButton.addEventListener('click', () => scanVolumes(device.mac, device.ip, row));
+                        actionCell.appendChild(scanButton);
+                    }
+
+                    row.insertCell(4).innerText = '';  // Placeholder for ping result
+                    row.cells[4].className = 'ping-result';
+                    row.insertCell(5).innerText = 'No volumes found';  // Placeholder for volumes/drives
+                    row.cells[5].className = 'volumes-info';
+                    loadVolumesInfo(device.mac, row);
+                });
+            } catch (error) {
+                console.error('Error during network scan:', error);
+                alert(`Error during network scan: ${error.message}`);
+            }
         });
 
         async function pingDevice(ip, row) {
-            const response = await fetch('/ping_device', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ ip: ip }),
-            });
-            const result = await response.json();
-            row.cells[4].innerText = result.success ? 'Reachable' : 'Unreachable';
+            try {
+                const response = await fetch('/ping_device', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ip: ip }),
+                });
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                const result = await response.json();
+                row.cells[4].innerText = result.success ? 'Reachable' : 'Unreachable';
+                row.cells[4].style.color = result.success ? 'green' : 'red';
+            } catch (error) {
+                console.error('Error pinging device:', error);
+                row.cells[4].innerText = 'Error';
+                row.cells[4].style.color = 'red';
+                alert(`Error pinging device: ${error.message}`);
+            }
+        }
+
+        async function scanVolumes(mac, ip, row) {
+            try {
+                const response = await fetch('/scan_volumes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ mac: mac, ip: ip }),
+                });
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                const result = await response.json();
+                loadVolumesInfo(mac, row);
+                alert(result.message);
+            } catch (error) {
+                console.error('Error scanning volumes:', error);
+                row.cells[5].innerText = 'Error';
+                alert(`Error scanning volumes: ${error.message}`);
+            }
+        }
+
+        async function loadVolumesInfo(mac, row) {
+            try {
+                const response = await fetch(`/get_volumes_info/${mac}`);
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                const volumesData = await response.json();
+                row.cells[5].innerHTML = volumesData.volumes.join('<br>');
+            } catch (error) {
+                console.error('Error loading volumes info:', error);
+                row.cells[5].innerText = 'Error';
+                alert(`Error loading volumes info: ${error.message}`);
+            }
         }
     </script>
 </body>
