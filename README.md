@@ -56,7 +56,7 @@ Start the Flask development server:
 
 bash
 
-python3 run.py
+sudo python3 run.py
 
 The application will be available at http://127.0.0.1:5000.
 Step 2: Access the Web Interface

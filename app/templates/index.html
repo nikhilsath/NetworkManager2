@@ -8,28 +8,43 @@
 </head>
 <body>
     <h1>Network Device Manager</h1>
-    <form id="mac-form">
-        <label for="mac_addresses">Enter MAC Addresses (comma separated):</label><br>
-        <input type="text" id="mac_addresses" name="mac_addresses" required><br><br>
-        <button type="submit">Check Devices</button>
+    <form id="scan-form">
+        <label for="ip_range">Enter IP Range (default: 192.168.68.0/24):</label><br>
+        <input type="text" id="ip_range" name="ip_range" value="192.168.68.0/24" required><br><br>
+        <button type="submit">Scan Network</button>
     </form>
-    <div id="results"></div>
+    <div id="results">
+        <table id="results-table" border="1">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>MAC Address</th>
+                    <th>Vendor</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
     <script>
-        document.getElementById('mac-form').addEventListener('submit', async function(event) {
+        document.getElementById('scan-form').addEventListener('submit', async function(event) {
             event.preventDefault();
-            const macAddresses = document.getElementById('mac_addresses').value.split(',');
+            const ipRange = document.getElementById('ip_range').value;
             const response = await fetch('/check_devices', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ mac_addresses: macAddresses }),
+                body: JSON.stringify({ ip_range: ipRange }),
             });
-            const results = await response.json();
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<h2>Results</h2>';
-            results.forEach(result => {
-                resultsDiv.innerHTML += `<p>MAC: ${result.mac} - IP: ${result.ip || 'N/A'} - Reachable: ${result.reachable}</p>`;
+            const devices = await response.json();
+            const resultsTable = document.getElementById('results-table').getElementsByTagName('tbody')[0];
+            resultsTable.innerHTML = '';  // Clear previous results
+            devices.forEach(device => {
+                const row = resultsTable.insertRow();
+                row.insertCell(0).innerText = device.ip;
+                row.insertCell(1).innerText = device.mac;
+                row.insertCell(2).innerText = device.vendor;
             });
         });
     </script>
